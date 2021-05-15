@@ -15,7 +15,7 @@ import pandas as pd
 
 T = 14  # Days to simulate
 np.random.seed(2)
-N = 1e5 # Number of simulations
+N = 3e6 # Number of simulations
 
 # Methods
 
@@ -29,8 +29,8 @@ def generate_viral_load_curve(t_0, t_p, t_f, v_p):
   b1 = 3 - m1 * t_0
   b2 = v_p - m2 * t_p
   
-  l1 = [m1 * t + b1 for t in range(T + 1) if t <= t_p]
-  l2 = [m2 * t + b2 for t in range(T + 1) if t > t_p]
+  l1 = [m1 * t + b1 for t in range(1, T + 1) if t <= t_p]
+  l2 = [m2 * t + b2 for t in range(1, T + 1) if t > t_p]
   
   return l1 + l2
   
