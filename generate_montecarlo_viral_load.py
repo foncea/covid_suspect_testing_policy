@@ -15,7 +15,7 @@ import pandas as pd
 
 T = 14  # Days to simulate
 np.random.seed(2)
-N = 3e6 # Number of simulations
+N = 1e7 # Number of simulations
 
 # Methods
 
@@ -29,8 +29,8 @@ def generate_viral_load_curve(t_0, t_p, t_f, v_p):
   b1 = 3 - m1 * t_0
   b2 = v_p - m2 * t_p
   
-  l1 = [m1 * t + b1 for t in range(1, T + 1) if t <= t_p]
-  l2 = [m2 * t + b2 for t in range(1, T + 1) if t > t_p]
+  l1 = [np.round(m1 * t + b1, 1) for t in range(1, T + 1) if t <= t_p]
+  l2 = [np.round(m2 * t + b2, 1) for t in range(1, T + 1) if t > t_p]
   
   return l1 + l2
   
@@ -54,7 +54,7 @@ def main():
   mc_matrix = []
   for it in range(int(N)):
     t_0, t_p, v_p, t_s, t_f, symptoms_flag = generate_random_variables()
-    row = generate_viral_load_curve(t_0, t_p, t_f, v_p) + [t_s, symptoms_flag]
+    row = generate_viral_load_curve(t_0, t_p, t_f, v_p) + [t_s * symptoms_flag]
     mc_matrix.append(row)
   
   results_df = pd.DataFrame(mc_matrix)
