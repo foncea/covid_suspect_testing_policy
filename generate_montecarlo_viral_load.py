@@ -12,11 +12,13 @@ import numpy as np
 import pandas as pd
 
 # Global Vars
+
 T = 14  # Days to simulate
 np.random.seed(2)
 N = 1e5 # Number of simulations
 
-# Functions
+# Methods
+
 def generate_viral_load_curve(t_0, t_p, t_f, v_p):
   '''
   Generate viral load curve V_t given the parameters
@@ -47,6 +49,7 @@ def generate_random_variables():
   return t_0, t_p, v_p, t_s, t_f, symptoms_flag
 
 # Main
+
 def main():
   mc_matrix = []
   for it in range(int(N)):
