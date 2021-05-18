@@ -13,9 +13,11 @@ import pandas as pd
 
 from itertools import combinations, product
 
+import time
+
 # Global Vars
 
-T = 12
+T = 10
 
 # Methods
 
@@ -49,8 +51,8 @@ def generate_budgeted_policies(num_antigen, num_pcr):
   Generate an array of possible testing policies with budgets for each type of test given by num_antigen and num_pcr
   '''
   
-  antigen_days = combinations(range(1,  T + 1), num_antigen)
-  pcr_days = combinations(range(2, T + 1), num_pcr)
+  antigen_days = combinations(range(0,  T), num_antigen)
+  pcr_days = combinations(range(1, T + 1), num_pcr)
   
   return product(antigen_days, pcr_days)
 
@@ -77,23 +79,128 @@ def evaluate_policy(df, policy):
     num = count_infecting(aux, t)
     den = aux.shape[0]
     if den != 0:
-      prob_inf += num / den
+      prob_inf += num / num_mc #den
     
   return prob_inf
 
+def evaluate_policy_lag(df, policy, t_l=0):
+  '''
+  Evaluate expected cost of a policy when there is a lag of t_l in identifying exposure.
+  A policy consists in a tuple, where the first entry are the antigen result test days, and the second are the PCR result days.
+  '''
+  
+  aux = df.copy()
+  num_mc = df.shape[0]
+  
+  D_a = [d + t_l for d in policy[0]]
+  D_p = [d + t_l for d in policy[1]]
+  
+  prob_inf = 0
+  work_days = 0
+  
+  for t in range(0, 14):
+    if t - 1 in D_a: 
+      aux = filter_antigent_tested(aux, t - 1)
+    if t - 1 in D_p:
+      aux = filter_pcr_tested(aux, t - 1)
+      
+    den = aux.shape[0]
+    if den != 0:
+      num = count_infecting(aux, t)
+      prob_inf += num / num_mc
+      work_days += den / num_mc
+    
+  return prob_inf, work_days
+
+def weight_policy_symptom_day(df, policy):
+  '''
+  Weight the cost of each policy by the (distribution) of the day in which the individual was infected by the index, where the distribution was already computed based on the conditional distribution of infected days given symptoms on day 0
+  '''
+  
+  inf_day_pdf = {0: 0.1669353401405535,
+                  1: 0.22514759942847082,
+                  2: 0.26480058806134404,
+                  3: 0.21587741781643335,
+                  4: 0.10776722889318635,
+                  5: 0.01918233381609943,
+                  6: 0.0002894918439125493}
+  inf_day_pdf = {d: inf_day_pdf[d] / sum(inf_day_pdf.values()) for d in inf_day_pdf}
+  
+  prob_inf = []
+  work_days = []
+  
+  for d in inf_day_pdf:
+    pi, wd = evaluate_policy_lag(df, policy, t_l=d)
+    prob_inf.append(pi)
+    work_days.append(wd)
+  
+  prob_inf_w = sum([prob_inf[d] * inf_day_pdf[d] for d in inf_day_pdf])
+  work_days_w = sum([work_days[d] * inf_day_pdf[d] for d in inf_day_pdf])
+  return prob_inf_w, work_days_w
+
+def evaluate_budgeted_policy(df, num_antigen, num_pcr):
+  '''
+  Evaluate all posible policies that use exactly num_antigen antigen test and num_pcr PCR tests.
+  '''
+  
+  policies = generate_budgeted_policies(num_antigen, num_pcr)
+  policy_cost = []
+  
+  for p in policies:
+    prob_inf, work_days = weight_policy_symptom_day(df, p)
+    aux_df = pd.DataFrame({'num_antigen': num_antigen,
+                           'num_pcr': num_pcr,
+                           'antigen_days': [[d for d in p[0]]],
+                           'pcr_days': [[d - 1 for d in p[1]]],
+                           'expected_infecting_days': prob_inf,
+                           'expected_non_infecting_days': work_days - prob_inf})
+    policy_cost.append(aux_df)
+  
+  return policy_cost
+  
+# Main
+
+def main2():
+  df = pd.read_csv('viral_load_mc.csv').iloc[:int(1e6)]
+  
+  policy_space_limits = {'antigen': [0, 5], 
+                         'pcr': [0, 2]}
+  policy_space = {'antigen': range(policy_space_limits['antigen'][0],
+                                   policy_space_limits['antigen'][1] + 1),
+                  'pcr': range(policy_space_limits['pcr'][0],
+                               policy_space_limits['pcr'][1] + 1)}
+
+  policy_cost = []
+  for num_pcr in policy_space['pcr']:
+    for num_antigen in policy_space['antigen']:
+      start_time = time.time()
+      
+      results = evaluate_budgeted_policy(df, num_antigen, num_pcr)
+      policy_cost = policy_cost + results
+      
+      print(str((num_antigen, num_pcr)) + ' finished in ' + str((time.time() - start_time) / 60))
+            
+  pd.concat(policy_cost).to_csv('results_18_05_1.csv')
+  
 def main():
-  df = pd.read_csv('viral_load_mc.csv')
+  df = pd.read_csv('viral_load_mc.csv').iloc[:int(1e5)]
   
   policies = generate_budgeted_policies(2, 1)
   policy_cost = []
   for p in policies:
-    prob_inf = evaluate_policy(df, p)
+    # prob_inf = evaluate_policy(df, p)
+    prob_inf, work_days = weight_policy_symptom_day(df, p)
     aux_df = pd.DataFrame({'antigen_days': [p[0]],
-                           'pcr_days': [p[1]], #[[d - 1 for d in p[1]]],
-                           'expected_infecting_days': prob_inf})
+                           'pcr_days': [[d - 1 for d in p[1]]],
+                           'expected_infecting_days': prob_inf,
+                           'expected_non_infecting_days': work_days - prob_inf})
     policy_cost.append(aux_df)
   
-  pd.concat(policy_cost).to_csv('results2.csv')
-    
-main()
-  
+  pd.concat(policy_cost).to_csv('results5.csv')
+
+
+# Execute
+
+start = time.time()    
+main2()
+print((time.time() - start) / 60)
