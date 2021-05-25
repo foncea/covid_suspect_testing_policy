@@ -22,6 +22,13 @@ N = 1e7 # Number of simulations
 def generate_viral_load_curve(t_0, t_p, t_f, v_p):
   '''
   Generate viral load curve V_t given the parameters
+  
+  Parameters
+  -----------
+  t_0: time to reach 10^3
+  t_p: time of peak
+  t_f: time to reach 10^6 on the way down
+  v_p: value of log(peak)
   '''
 
   m1 = (v_p - 3) / (t_p - t_0)
@@ -37,6 +44,15 @@ def generate_viral_load_curve(t_0, t_p, t_f, v_p):
 def generate_random_variables():
   '''
   Generate a set of random variables (one draw from the Monte Carlo simulation)
+  
+  Returns
+  -------
+  t_0: time to reach 10^3
+  t_p: time of peak
+  t_f: time to reach 10^6 on the way down
+  v_p: value of log(peak)
+  t_s: time of symptoms
+  symptoms_flag: Boolean symptomatic
   '''
   
   t_0 = np.random.uniform(low=2.5, high=3.5)

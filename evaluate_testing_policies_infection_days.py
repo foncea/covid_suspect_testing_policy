@@ -17,7 +17,7 @@ import time
 
 # Global Vars
 
-T = 8
+T = 7
 
 # Methods
 
@@ -173,8 +173,17 @@ def weight_policy_symptom_day(df, policy):
                   2: 0.26480058806134404,
                   3: 0.21587741781643335,
                   4: 0.10776722889318635,
-                  5: 0.01918233381609943,
-                  6: 0.0002894918439125493}
+                  5: 0.01918233381609943}
+  inf_day_pdf = {0: 0.23550498586741955,
+                  1: 0.18526076665827995,
+                  2: 0.1491931526909608,
+                  3: 0.12145630421492379,
+                  4: 0.09797953217203573,
+                  5: 0.07684305227089296,
+                  6: 0.057105543597348894,
+                  7: 0.03934966233862648,
+                  8: 0.024580317017036127,
+                  9: 0.012726683172475764}
   inf_day_pdf = {d: inf_day_pdf[d] / sum(inf_day_pdf.values()) for d in inf_day_pdf}
   
   prob_inf = []
@@ -238,7 +247,7 @@ def evaluate_budgeted_policy(df, num_antigen, num_pcr):
 # Main
 
 def main2():
-  df = pd.read_csv('data/viral_load_mc.csv').iloc[:int(1e6)]
+  df = pd.read_csv('data/viral_load_mc.csv').iloc[:int(2e5)]
   
   policy_space_limits = {'antigen': [0, 5], 
                          'pcr': [0, 2]}
@@ -257,7 +266,7 @@ def main2():
       
       print(str((num_antigen, num_pcr)) + ' finished in ' + str((time.time() - start_time) / 60))
             
-  pd.concat(policy_cost).to_csv('data/results_23_05_2.csv')
+  pd.concat(policy_cost).to_csv('data/results_antigen_25_05_1.csv')
 
 # Execute
 
