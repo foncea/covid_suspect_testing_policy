@@ -41,7 +41,7 @@ def count_infecting_corr(df, t, s):
   aux = df[(df[c_t] >= 6) & (df[c_s] >= 6)]
   return aux.shape[0]
 
-def filter_antigent_tested(df, t):
+def filter_antigen_tested(df, t):
   '''
   Filter out viral load curves that are antigen-positive at day t
   '''
@@ -62,7 +62,9 @@ def filter_symptomatic(df, t):
   Filter out symptomatic individuals
   '''
   
-  return df[(df['14'] > t) | (df['14'] < 1)] 
+  asymptomatic = (df['14'] < 1)
+  pre_symptoms  = (df['14'] > t)
+  return df[pre_symptoms | asymptomatic] 
 
 def generate_budgeted_policies(num_antigen, num_pcr):
   '''
@@ -91,7 +93,7 @@ def evaluate_policy(df, policy):
   for t in range(0, T + 1):
     aux = filter_symptomatic(aux, t)
     if t - 1 in D_a: 
-      aux = filter_antigent_tested(aux, t - 1)
+      aux = filter_antigen_tested(aux, t - 1)
     if t - 1 in D_p:
       aux = filter_pcr_tested(aux, t - 1)
       
@@ -140,7 +142,7 @@ def evaluate_policy_lag(df, policy, t_l=0):
   for t in range(0, 14):
     aux = filter_symptomatic(aux, t)
     if t in D_a: 
-      aux = filter_antigent_tested(aux, t)
+      aux = filter_antigen_tested(aux, t)
     if t in D_p:
       aux = filter_pcr_tested(aux, t)
       
@@ -163,27 +165,30 @@ def evaluate_policy_lag(df, policy, t_l=0):
       
   return sum(prob_inf), sum(work_days), variance_pi, variance_wd, quantile_pi, quantile_wd
 
-def weight_policy_symptom_day(df, policy):
+def weight_policy_symptom_day(df, policy, index='symptoms'):
   '''
-  Weight the cost of each policy by the (distribution) of the day in which the individual was infected by the index, where the distribution was already computed based on the conditional distribution of infected days given symptoms on day 0
+  Weight the cost of each policy by the (distribution) of the day in which the individual was infected by the index, where the distribution was already computed based on the conditional distribution of infected days given symptoms on day 0 or antigen at day 0, depending on which one was used to identify the index.
   '''
   
-  inf_day_pdf = {0: 0.1669353401405535,
-                  1: 0.22514759942847082,
-                  2: 0.26480058806134404,
-                  3: 0.21587741781643335,
-                  4: 0.10776722889318635,
-                  5: 0.01918233381609943}
-  inf_day_pdf = {0: 0.23550498586741955,
-                  1: 0.18526076665827995,
-                  2: 0.1491931526909608,
-                  3: 0.12145630421492379,
-                  4: 0.09797953217203573,
-                  5: 0.07684305227089296,
-                  6: 0.057105543597348894,
-                  7: 0.03934966233862648,
-                  8: 0.024580317017036127,
-                  9: 0.012726683172475764}
+  if index == 'symptoms':
+    inf_day_pdf = {0: 0.1669353401405535,
+                    1: 0.22514759942847082,
+                    2: 0.26480058806134404,
+                    3: 0.21587741781643335,
+                    4: 0.10776722889318635,
+                    5: 0.01918233381609943}
+  if index == 'antigen':
+    inf_day_pdf = {0: 0.23550498586741955,
+                    1: 0.18526076665827995,
+                    2: 0.1491931526909608,
+                    3: 0.12145630421492379,
+                    4: 0.09797953217203573,
+                    5: 0.07684305227089296,
+                    6: 0.057105543597348894,
+                    7: 0.03934966233862648,
+                    8: 0.024580317017036127,
+                    9: 0.012726683172475764}
+    
   inf_day_pdf = {d: inf_day_pdf[d] / sum(inf_day_pdf.values()) for d in inf_day_pdf}
   
   prob_inf = []
@@ -247,7 +252,8 @@ def evaluate_budgeted_policy(df, num_antigen, num_pcr):
 # Main
 
 def main2():
-  df = pd.read_csv('data/viral_load_mc.csv').iloc[:int(2e5)]
+  df = pd.read_csv('data/viral_load_mc.csv').iloc[:int(1e3)]
+  df.rename(columns={str(i): str(i + 1) for i in range(14)})
   
   policy_space_limits = {'antigen': [0, 5], 
                          'pcr': [0, 2]}
@@ -266,7 +272,7 @@ def main2():
       
       print(str((num_antigen, num_pcr)) + ' finished in ' + str((time.time() - start_time) / 60))
             
-  pd.concat(policy_cost).to_csv('data/results_antigen_25_05_1.csv')
+  pd.concat(policy_cost).to_csv('data/results_28_05_2.csv')
 
 # Execute
 

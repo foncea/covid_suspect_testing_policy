@@ -2,7 +2,7 @@ library(tidyverse)
 library(plotly)
 
 # Read Data
-df = read.csv('data/results_23_05_2.csv')
+df = read.csv('data/results_antigen_25_05_1.csv')
 
 # Plot 1: facet_grid with all points
 df %>% mutate(num_antigen = paste('num_antigen:', num_antigen),
@@ -69,7 +69,7 @@ df_aux %>%
   subplot(nrows = 3, shareX=TRUE)
 
 # Plot 4: Frontier for all budgets together
-pareto_df = read.csv('data/pareto_points_23_05_2.csv')
+pareto_df = read.csv('data/pareto_points_antigen_25_05_1.csv')
 
 pareto_df %>% 
   mutate(Policy_Budget = paste('Antigen: ', num_antigen, '- PCR: ', num_pcr),

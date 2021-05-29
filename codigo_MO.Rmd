@@ -1,0 +1,45 @@
+---
+title: "Analysis of testing policies"
+output: html_notebook
+---
+
+## Load libraries and data
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(data.table)
+# Read Data
+df = read.csv('data/results_23_05_2.csv')
+results.symp = as.data.table(df)
+str(results.symp)
+df = read.csv('data/results_antigen_25_05_1.csv')
+results.antig = as.data.table(df)
+str(results.antig)
+
+results.symp[,index_type:="symp"]
+results.antig[,index_type:="antig"]
+results.dt = rbind(results.symp,results.antig)
+```
+
+## Select policies to display in graph
+```{r}
+best.dt = results.dt[,.SD[which.min(expected_infecting_days)],by=.(num_antigen,num_pcr,index_type)]
+best.dt[,num_all := num_antigen + num_pcr]
+best.dt[,min.by.num := min(expected_infecting_days),by=.(num_all,index_type)]
+setcolorder(best.dt,c("num_all","num_antigen","num_pcr","expected_infecting_days","min.by.num"))
+#best.by.num = best.dt[,.SD[which.min(expected_infecting_days)],by=.(num_all)]
+
+```
+
+## Order the policies and graph them
+```{r}
+library(forcats)
+best.dt[,id.fact:=as.factor(paste0(as.character(num_pcr),"_",as.character(num_antigen)))]
+best.dt[,order.fact:= num_all*10+num_antigen]
+best.dt[,id.fact:=fct_reorder(id.fact,num_all)]
+
+ggplot(data=best.dt,aes(x=id.fact, y=expected_infecting_days, colour=index_type)) +
+  geom_point() +
+  xlab('(# PCR, # Antigen)')
+```
+
